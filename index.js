@@ -13,6 +13,8 @@ const SWAPI_BASE_URL = 'https://swapi.tech/api';
 let allCharacters = [];
 let cacheLoaded = false;
 let filmCache = {};
+let lastLoaded = 0;
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
 
 // Delay helper
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -85,8 +87,17 @@ app.get('/api/characters', async (req, res) => {
     const returnAll = req.query.all === 'true';
 
     await loadAllCharacters();
-    if (!cacheLoaded)
-      return res.status(500).json({ error: 'Failed to load characters.' });
+   const now = Date.now();
+if (!cacheLoaded || now - lastLoaded > CACHE_DURATION) {
+  // Refresh cache
+  await loadAllCharacters();
+  if (cacheLoaded) {
+    lastLoaded = now;
+  } else {
+    return res.status(500).json({ error: 'Failed to load characters.' });
+  }
+}
+
     if (Object.keys(filmCache).length === 0) {
       await loadAllFilms();
     }
